@@ -1,0 +1,15 @@
+@mediapipe/tasks-vision 1.0.1
+  licence: Apache-2.0
+  source:  https://github.com/google-ai-edge/mediapipe
+
+MediaPipe pose landmarker model
+  licence: Apache-2.0
+  source:  https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker
+
+qrcode-generator 2.0.4
+  licence: MIT
+  source:  https://github.com/kazuhikoarase/qrcode-generator
+
+jsQR 1.4.0
+  licence: Apache-2.0
+  source:  https://github.com/cozmo/jsQR

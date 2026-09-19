@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e2020">
+<meta name="referrer" content="no-referrer">
+<title>KinemaLoom</title>
+<link rel="stylesheet" href="style.css">
+<script src="js/vendor/jsQR.js"></script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+<!-- No programme yet -->
+<section id="welcome" class="page centred" hidden>
+  <div class="logo"><img src="KinemaLoom.jpg" alt="KinemaLoom"></div>
+  <h1>Home exercise</h1>
+  <p class="sub">Your clinician shows you a QR code on their computer. Scan it to get your exercises.</p>
+  <button class="big primary" data-go="scan">Scan the programme</button>
+  <p class="safety">Stop if it hurts. This is a prototype, not a medical device, and it does not replace your clinician's advice.</p>
+</section>
+
+<!-- Scanning the clinic's programme QR -->
+<section id="scan" class="page" hidden>
+  <header><button class="small" data-go="back">Back</button><h2>Scan the programme</h2></header>
+  <div class="camera"><video id="scan-video" playsinline muted></video><div class="aim"></div></div>
+  <p class="sub" id="scan-msg">Point the camera at the QR code on your clinician's screen.</p>
+</section>
+
+<!-- Programme loaded -->
+<section id="home" class="page" hidden>
+  <div class="logo small"><img src="KinemaLoom.jpg" alt="KinemaLoom"></div>
+  <h1 id="home-title">Your exercises</h1>
+  <p class="sub" id="home-from"></p>
+  <ol id="home-list" class="items"></ol>
+  <button class="big primary" id="home-start">Start today's exercises</button>
+  <button class="big" data-go="send" id="home-send">Send results to the clinic</button>
+  <p class="sub" id="home-sessions"></p>
+  <footer>
+    <button class="small" data-go="scan">Scan a new programme</button>
+    <button class="small" id="forget">Delete my data from this phone</button>
+  </footer>
+  <p class="safety">Stop if it hurts. This is a prototype, not a medical device, and it does not replace your clinician's advice.</p>
+</section>
+
+<!-- Exercising -->
+<section id="exercise" class="page exercise" hidden>
+  <header>
+    <div><h2 id="ex-title"></h2><p class="cue" id="ex-cue"></p></div>
+    <button class="small toggle" id="sound">Sound on</button>
+  </header>
+  <div class="stage">
+    <div class="camera live"><canvas id="live"></canvas>
+      <div class="angle" id="angle"></div>
+      <div class="loading" id="loading">Preparing the camera…</div>
+    </div>
+    <div class="warning" id="warning"></div>
+  </div>
+  <div class="panel">
+    <div class="counts">
+      <canvas id="figure"></canvas>
+      <div><div class="count" id="count">0 / 0</div><div class="count-sub" id="count-sub"></div></div>
+    </div>
+    <div class="status" id="status"></div>
+    <ol class="strip" id="strip"></ol>
+    <div class="buttons">
+      <button class="small" id="finish">Finish</button>
+      <button class="big primary" id="start">Start</button>
+      <button class="big" id="skip" hidden>Skip rest</button>
+      <button class="big" id="next">Next exercise</button>
+    </div>
+  </div>
+</section>
+
+<!-- After a session: how did it feel -->
+<section id="feedback" class="page centred" hidden>
+  <h1>How did it feel?</h1>
+  <p class="sub">Your clinician will see your answers with today's session.</p>
+  <p class="label">Pain during the exercises: 0 is none, 10 is the worst imaginable</p>
+  <div class="choices" id="pain"></div>
+  <p class="label">How hard was it?</p>
+  <div class="choices" id="effort"></div>
+  <div class="row">
+    <button class="big" id="fb-skip">Skip</button>
+    <button class="big primary" id="fb-save">Save</button>
+  </div>
+</section>
+
+<!-- Saved -->
+<section id="done" class="page centred" hidden>
+  <h1 id="done-title">Well done</h1>
+  <ul class="summary" id="done-list"></ul>
+  <p class="sub" id="done-text"></p>
+  <button class="big primary" data-go="send">Send results to the clinic</button>
+  <button class="big" data-go="home">Back to my exercises</button>
+</section>
+
+<!-- Results as an animated QR for the clinic computer's camera -->
+<section id="send" class="page centred" hidden>
+  <header><button class="small" data-go="home">Done</button><h2>Send results</h2></header>
+  <p class="sub" id="send-msg">Hold this screen up to the clinic computer's camera, about 20 to 40 cm away. The code changes by itself; keep holding until the computer says every part is read.</p>
+  <canvas id="qr"></canvas>
+  <p class="sub" id="send-part"></p>
+</section>
+
+</body>
+</html>
