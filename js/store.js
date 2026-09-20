@@ -59,4 +59,7 @@ export function forgetAll() {
 export const settings = {
   get sound() { return read("kl.sound", true); },
   set sound(on) { write("kl.sound", on); },
+  // Empty until the patient chooses: the programme's language is used until then.
+  get language() { return read("kl.language", ""); },
+  set language(lang) { write("kl.language", lang); },
 };

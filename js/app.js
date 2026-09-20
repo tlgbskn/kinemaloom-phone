@@ -9,24 +9,58 @@
 
 import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs";
 import qrcode from "./vendor/qrcode.mjs";
-import { angle3pt, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js";
+import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js";
 import { decodeProgramme, encodeResults } from "./exchange.js";
 import { HomeSession } from "./session.js";
 import { drawFigure, facingText } from "./figure.js";
 import * as store from "./store.js";
+import { t, useLanguage, currentLanguage, sideWords, LANGUAGES } from "./i18n.js";
 
 const MODEL = "full";
 const SEND_PART_MS = 500;          // each results QR part stays this long on screen
-const EFFORTS = ["easy", "about right", "hard"];
+const EFFORTS = ["easy", "about right", "hard"];   // stored as they are; shown translated
 // Development only: ?video=<url> measures a video file instead of the camera.
 const DEV_VIDEO = new URLSearchParams(location.search).get("video");
 
 const $ = (id) => document.getElementById(id);
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
-const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const sessionsWord = (n) => t(n === 1 ? "patient.sessions.one" : "patient.sessions.other", { n });
 
 function setText(el, text) {
   if (el.textContent !== text) el.textContent = text;
+}
+
+// ----- the language ------------------------------------------------------------
+
+// The clinic can put the patient's language in the programme; the patient can
+// change it here, and that choice wins from then on. Failing both, the phone's
+// own language, and English if that is not one we have.
+async function applyLanguage(chosen) {
+  if (chosen) store.settings.language = chosen;
+  const programme = store.loadProgramme()?.programme;
+  const lang = store.settings.language || programme?.language || navigator.language?.slice(0, 2);
+  await useLanguage(lang);
+  document.documentElement.lang = currentLanguage();
+  for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
+  // The language button offers the other language, in that language.
+  const other = Object.keys(LANGUAGES).find((l) => l !== currentLanguage());
+  for (const id of ["language", "language-welcome"]) {
+    const button = $(id);
+    if (button) {
+      button.textContent = LANGUAGES[other];
+      button.onclick = () => applyLanguage(other).then(() => redraw());
+    }
+  }
+}
+
+// Whatever page is showing, drawn again in the language now in use.
+function redraw() {
+  if (page === "home") renderHome();
+  else if (page === "exercise") {
+    selectionChanged();
+    buildStrip();
+  } else if (page === "scan") $("scan-msg").textContent = t("patient.scan.hint");
+  else if (page === "send") startSend();
 }
 
 // ----- pages ------------------------------------------------------------------
@@ -74,16 +108,16 @@ async function openCamera(facing) {
 
 function cameraError(e) {
   switch (e.name) {
-    case "NotAllowedError": return "The camera is blocked for this page. Allow it in the browser's site settings, then try again.";
-    case "NotFoundError": case "OverconstrainedError": return "No camera was found on this phone.";
-    case "NotReadableError": return "The camera is in use by another app. Close it and try again.";
-    case "InsecureError": return "The camera only works when this page is opened over https.";
-    default: return `The camera could not start (${e.message || e.name}).`;
+    case "NotAllowedError": return t("camera.blocked");
+    case "NotFoundError": case "OverconstrainedError": return t("camera.none");
+    case "NotReadableError": return t("camera.busy");
+    case "InsecureError": return t("camera.insecure");
+    default: return t("camera.failed", { message: e.message || e.name });
   }
 }
 
 function stopStream(stream) {
-  stream?.getTracks().forEach((t) => t.stop());
+  stream?.getTracks().forEach((track) => track.stop());
 }
 
 let wakeLock = null;
@@ -109,7 +143,7 @@ document.addEventListener("visibilitychange", () => {
 async function startScan() {
   show("scan");
   const msg = $("scan-msg");
-  msg.textContent = "Point the camera at the QR code on your clinician's screen.";
+  msg.textContent = t("patient.scan.hint");
   let stream;
   try {
     stream = await openCamera("environment");
@@ -152,18 +186,19 @@ async function startScan() {
         const found = window.jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
         if (found) texts = [found.data];
       }
-      const ours = texts.find((t) => t.startsWith("KLP1"));
+      const ours = texts.find((text) => text.startsWith("KLP1"));
       if (ours) {
         const programme = await decodeProgramme(ours);
         done = true;
         store.saveProgramme(ours, programme);
         if (navigator.vibrate) navigator.vibrate(80);
+        await applyLanguage();        // a programme may arrive in the other language
         renderHome();
       } else if (texts.length) {
-        msg.textContent = "That QR code is not a KinemaLoom programme.";
+        msg.textContent = t("patient.scan.not_ours");
       }
     } catch (e) {
-      msg.textContent = `The code could not be read: ${e.message}. Try again, a little closer.`;
+      msg.textContent = t("patient.scan.failed", { message: e.message });
     } finally {
       busy = false;
     }
@@ -174,15 +209,17 @@ async function startScan() {
 // ----- the exercise list --------------------------------------------------------
 
 function describeItem(it) {
-  const plan = it.sets > 1
-    ? `${it.sets} sets of ${it.reps}${it.rest ? `, ${it.rest} s rest` : ""}`
-    : plural(it.reps, "repetition");
-  return `${plan} · target ${it.target[0]}–${it.target[1]}°`;
+  let plan = it.sets > 1 ? t("patient.item.sets", { sets: it.sets, reps: it.reps })
+    : t(it.reps === 1 ? "patient.item.reps.one" : "patient.item.reps.other", { reps: it.reps });
+  if (it.sets > 1 && it.rest) plan = t("patient.item.rest", { plan, rest: it.rest });
+  return t("patient.item.plan", { plan, lo: it.target[0], hi: it.target[1] });
 }
 
 function formatDate(iso) {
   const d = new Date(`${iso}T12:00:00`);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const locale = currentLanguage() === "fr" ? "fr-CA" : "en-GB";
+  return Number.isNaN(d.getTime()) ? iso
+    : d.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
 }
 
 function renderHome() {
@@ -190,13 +227,18 @@ function renderHome() {
   if (!saved) return show("welcome");
   const p = saved.programme;
   show("home");
-  $("home-title").textContent = `Your exercises · ${p.patient}`;
-  $("home-from").textContent = `From ${p.clinician || "your clinician"}, ${formatDate(p.issued)}`;
+  $("home-title").textContent = t("patient.home.title", { patient: p.patient });
+  $("home-from").textContent = t("patient.home.from", {
+    clinician: p.clinician || t("patient.home.clinician"), date: formatDate(p.issued) });
+  $("home-start").textContent = t("patient.home.start");
+  $("home-send").textContent = t("patient.home.send");
   const list = $("home-list");
   list.replaceChildren(...p.items.map((it) => {
     const li = document.createElement("li");
     const b = document.createElement("b");
-    b.textContent = `${it.exercise} · ${it.side} side`;
+    const ex = exerciseByName(it.exercise);
+    b.textContent = t("patient.item.title", { name: ex ? ex.displayName : it.exercise,
+                                              ...sideWords(it.side) });
     const span = document.createElement("span");
     span.textContent = describeItem(it);
     li.append(b, span);
@@ -204,16 +246,15 @@ function renderHome() {
   }));
   const n = store.sessionsFor(p.patient).length;
   $("home-sessions").textContent = n
-    ? `${plural(n, "session")} saved on this phone. Sending them again is fine; the clinic keeps each once.`
-    : "No sessions on this phone yet.";
+    ? t("patient.home.sessions.some", { sessions: sessionsWord(n) })
+    : t("patient.home.sessions.none");
   $("home-send").disabled = n === 0;
 }
 
 $("home-start").addEventListener("click", () => startExercises());
 
 $("forget").addEventListener("click", () => {
-  if (confirm("Delete your programme and every saved session from this phone? "
-              + "Sessions not yet sent to the clinic will be lost.")) {
+  if (confirm(t("patient.forget.confirm"))) {
     store.forgetAll();
     show("welcome");
   }
@@ -265,7 +306,7 @@ async function startExercises() {
   if (!saved) return show("welcome");
   session = new HomeSession(saved.programme, { model: MODEL });
   if (!session.items.length) {
-    alert("This programme has no exercises this app can measure. Please ask your clinician.");
+    alert(t("patient.no_exercises"));
     return;
   }
   latest = null;
@@ -278,7 +319,7 @@ async function startExercises() {
   const loading = $("loading");
   const live = $("live");
   loading.hidden = false;
-  loading.textContent = "Preparing the camera…";
+  loading.textContent = t("patient.loading.camera");
   let running = true;
   let measuring = false;           // camera and tracker ready
   let stream = null;
@@ -328,7 +369,7 @@ async function startExercises() {
     try {
       result = landmarker.detectForVideo(video, stamp);
     } catch (e) {
-      sourceError = `Measuring stopped (${e.message}).`;
+      sourceError = t("camera.measuring_stopped", { message: e.message });
       measuring = false;
       updateReadout();
       return;
@@ -354,7 +395,7 @@ async function startExercises() {
     await video.play();
   } catch (e) {
     if (!running) return stopStream(stream);
-    sourceError = DEV_VIDEO ? `The video could not play (${e.message}).` : cameraError(e);
+    sourceError = DEV_VIDEO ? t("camera.video_failed", { message: e.message }) : cameraError(e);
     loading.textContent = sourceError;
     updateReadout();
     return;
@@ -362,11 +403,11 @@ async function startExercises() {
   if (!running) return;
   keepAwake(true);
 
-  loading.textContent = "Preparing the movement tracker…";
+  loading.textContent = t("patient.loading.tracker");
   try {
     landmarker = landmarker || (await createLandmarker());
   } catch (e) {
-    sourceError = `The movement tracker could not start on this phone (${e.message}).`;
+    sourceError = t("camera.tracker_failed", { message: e.message });
     loading.textContent = sourceError;
     updateReadout();
     return;
@@ -418,23 +459,23 @@ function buildStrip() {
 
 function selectionChanged() {
   const ex = session.ex;
-  $("ex-title").textContent = `${ex.name} · ${session.side} side`;
-  $("ex-cue").textContent = `${ex.cueFor(session.side)}. ${facingText(ex)}; green is your target, `
-                            + `${ex.target[0]}–${ex.target[1]}°.`;
+  $("ex-title").textContent = t("patient.item.title", { name: ex.displayName, ...sideWords(session.side) });
+  $("ex-cue").textContent = t("patient.cue.full", { cue: ex.cueFor(session.side), facing: facingText(ex),
+                                                    lo: ex.target[0], hi: ex.target[1] });
   latest = null;
   updateReadout();
 }
 
 function warningState() {
   if (sourceError) return [sourceError, "bad"];
-  if (!latest) return ["Waiting for the camera…", "muted"];
+  if (!latest) return [t("warning.waiting_camera"), "muted"];
   const parts = [];
   let level = "ok";
   if (!latest.pose) {
-    parts.push("No person detected");
+    parts.push(t("warning.no_person"));
     level = "bad";
   } else if (!latest.confident) {
-    parts.push(cap(latest.reason) || "Low confidence");
+    parts.push(cap(latest.reason) || t("warning.low_confidence"));
     level = "bad";
   }
   if (latest.hint) {
@@ -443,10 +484,10 @@ function warningState() {
   }
   if (session.measuredLimbFar()) {
     const limb = session.ex.jointNames[1] === "knee" ? "leg" : "arm";
-    parts.push(`Your ${session.side} ${limb} looks farther from the camera – turn so it is nearest`);
+    parts.push(t(`warning.far_limb.${limb}`, sideWords(session.side)));
     if (level === "ok") level = "warn";
   }
-  if (!parts.length) return ["✓  Tracking OK", "ok"];
+  if (!parts.length) return [`✓  ${t("warning.tracking_ok")}`, "ok"];
   return [`⚠  ${parts.join(" · ")}`, level];
 }
 
@@ -490,7 +531,7 @@ function updateReadout() {
   $("start").hidden = running;
   $("skip").hidden = !session.resting();
   const next = $("next");
-  setText(next, session.isLast() ? "Finish" : "Next exercise");
+  setText(next, t(session.isLast() ? "patient.button.finish" : "patient.button.next"));
   next.classList.toggle("ready", done);
   next.hidden = !running;
 
@@ -531,7 +572,7 @@ $("finish").addEventListener("click", () => finishSession());
 function setSound(on) {
   sound = on;
   store.settings.sound = on;
-  $("sound").textContent = on ? "Sound on" : "Sound off";
+  $("sound").textContent = t(on ? "patient.sound.on" : "patient.sound.off");
   $("sound").classList.toggle("primary", on);
 }
 $("sound").addEventListener("click", () => {
@@ -582,7 +623,7 @@ function finishSession() {
 
 function resetFeedback() {
   $("pain").replaceChildren(...Array.from({ length: 11 }, (_, n) => choice(String(n), "pain")));
-  $("effort").replaceChildren(...EFFORTS.map((e) => choice(cap(e), "effort")));
+  $("effort").replaceChildren(...EFFORTS.map((e) => choice(t(`effort.${e.replace(/ /g, "_")}`), "effort")));
 }
 
 function choice(text, group) {
@@ -630,26 +671,27 @@ window.addEventListener("pagehide", () => {
 
 function describeFeedback(f) {
   const parts = [];
-  if (f?.pain != null) parts.push(`pain ${f.pain} of 10`);
-  if (f?.effort) parts.push(`effort ${f.effort}`);
-  return parts.join(", ") || "not given";
+  if (f?.pain != null) parts.push(t("feedback.pain", { n: f.pain }));
+  if (f?.effort) parts.push(t("feedback.effort", { effort: t(`effort.${f.effort.replace(/ /g, "_")}`).toLowerCase() }));
+  return parts.join(", ") || t("feedback.none");
 }
 
 function showSummary(feedback, saved) {
   const lines = session.summary();
   const complete = lines.every((l) => l.done);
-  $("done-title").textContent = complete ? "Well done" : saved ? "Saved" : "Nothing saved";
+  $("done-title").textContent = t(complete ? "patient.done.well" : saved ? "patient.done.saved"
+                                             : "patient.done.nothing");
   $("done-list").replaceChildren(...lines.map((l) => {
     const li = document.createElement("li");
-    li.textContent = `${l.name}: ${l.reps} of ${l.total}${l.done ? " ✓" : ""}`;
+    li.textContent = t("patient.done.line", { name: l.name, done: l.reps, total: l.total })
+                     + (l.done ? " ✓" : "");
     li.className = l.done ? "done" : "";
     return li;
   }));
   $("done-text").textContent = !saved
-    ? (session.hasData() ? "The session could not be saved: this browser's storage is full or blocked."
-      : "Nothing was measured today.")
-    : (feedback ? `You said: ${describeFeedback(feedback)}. ` : "")
-      + "Send your results to the clinic at your next visit, or now if you are there.";
+    ? t(session.hasData() ? "patient.done.save_failed" : "patient.done.nothing_measured")
+    : (feedback ? t("patient.done.you_said", { feedback: describeFeedback(feedback) }) : "")
+      + t("patient.done.send_later");
   document.querySelector('#done [data-go="send"]').hidden = !saved;
 }
 
@@ -686,7 +728,7 @@ async function startSend() {
   const partText = $("send-part");
   if (!sessions.length) {
     canvas.hidden = true;
-    partText.textContent = "There are no sessions on this phone yet.";
+    partText.textContent = t("patient.send.none");
     return;
   }
   canvas.hidden = false;
@@ -694,13 +736,14 @@ async function startSend() {
   try {
     parts = await encodeResults(p.patient, p.key, sessions);
   } catch (e) {
-    partText.textContent = `The results could not be prepared (${e.message}).`;
+    partText.textContent = t("patient.send.failed", { message: e.message });
     return;
   }
   let i = 0;
   const step = () => {
     drawQr(canvas, parts[i]);
-    partText.textContent = `${plural(sessions.length, "session")} · part ${i + 1} of ${parts.length}`;
+    partText.textContent = t("patient.send.part", { sessions: sessionsWord(sessions.length),
+                                                    n: i + 1, total: parts.length });
     i = (i + 1) % parts.length;
   };
   step();
@@ -712,6 +755,7 @@ async function startSend() {
 // ----- start ----------------------------------------------------------------------
 
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
+await applyLanguage();               // nothing is shown before the messages are in
 store.loadProgramme() ? renderHome() : show("welcome");
 
 // For the development page and tests: the state, read-only in spirit.

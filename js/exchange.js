@@ -119,17 +119,18 @@ export async function decodeProgramme(text) {
     return { exercise: CODE_EXERCISES[ex], side: CODE_SIDES[side], reps, sets, rest, target: [lo, hi] };
   });
   keyBytes(p.k);
-  return { patient: p.p, clinician: p.c, issued: p.d, key: p.k, items };
+  return { patient: p.p, clinician: p.c, issued: p.d, key: p.k, language: p.l || "en", items };
 }
 
 // The clinic computer makes programmes; this exists for tests and demonstrations.
-export async function encodeProgramme(code, clinician, key, items, ranges, issued) {
+export async function encodeProgramme(code, clinician, key, items, ranges, issued, language) {
   const rows = items.map((it) => {
     const [lo, hi] = ranges[it.exercise];
     return [EXERCISE_CODES[it.exercise], SIDE_CODES[it.side], it.reps, it.sets ?? 1, it.rest ?? 30,
             pyRound(lo), pyRound(hi)];
   });
   const payload = { v: VERSION, p: code, c: clinician || "", d: issued, k: key, i: rows };
+  if (language && language !== "en") payload.l = language;   // English is the fallback
   return PROGRAMME_PREFIX + b45encode(await pack(payload));
 }
 

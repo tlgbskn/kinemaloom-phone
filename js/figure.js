@@ -2,17 +2,19 @@
 // A canvas port of ExerciseAnimation in motionloom_qt.py; the geometry is the
 // same, in the same 200 x 230 model space.
 
+import { t } from "./i18n.js";
+
 export const COLOURS = {
   bg: "#1e2020", fg: "#e8eeee", muted: "#909696", ok: "#78be6e", tile: "#292c2c", edge: "#424646",
 };
 
 const CYCLE = 3.6;                 // seconds for out, hold, back, rest
 
-function currentAngle(ex, t) {
+function currentAngle(ex, seconds) {
   const [lo, hi] = ex.target;
   const goal = (lo + hi) / 2;
   const rest = ex.decreasing ? 170 : 15;
-  const f = (t % CYCLE) / CYCLE;
+  const f = (seconds % CYCLE) / CYCLE;
   let u = f < 0.35 ? f / 0.35 : f < 0.5 ? 1 : f < 0.85 ? 1 - (f - 0.5) / 0.35 : 0;
   u = 0.5 - 0.5 * Math.cos(Math.PI * u);
   return rest + (goal - rest) * u;
@@ -54,8 +56,8 @@ function pose(ex, side, a) {
   return [grey, [hip, knee, [knee[0] + 45 * d[0], knee[1] + 45 * d[1]]], null];
 }
 
-// Draws into a canvas already scaled to CSS pixels (w x h). t: seconds.
-export function drawFigure(ctx, w, h, ex, side, t) {
+// Draws into a canvas already scaled to CSS pixels (w x h).
+export function drawFigure(ctx, w, h, ex, side, seconds) {
   ctx.clearRect(0, 0, w, h);
   if (!ex) return;
   const topRoom = frontView(ex) ? 38 : 4;
@@ -64,7 +66,7 @@ export function drawFigure(ctx, w, h, ex, side, t) {
   const oy = 4 + topRoom * k;
   const P = ([x, y]) => [ox + x * k, oy + y * k];
 
-  const a = currentAngle(ex, t);
+  const a = currentAngle(ex, seconds);
   const [lo, hi] = ex.target;
   const inside = lo <= a && a <= hi;
   const [grey, [ref, vertex, moving], extra] = pose(ex, side, a);
@@ -119,4 +121,4 @@ export function drawFigure(ctx, w, h, ex, side, t) {
   ctx.fillText(`${Math.round(a)}°`, V[0] + (42 * k) * Math.cos(mid), V[1] + (42 * k) * Math.sin(mid));
 }
 
-export const facingText = (ex) => (frontView(ex) ? "Face the camera" : "Side-on to the camera");
+export const facingText = (ex) => t(frontView(ex) ? "patient.facing.front" : "patient.facing.side");

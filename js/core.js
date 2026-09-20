@@ -5,6 +5,8 @@
 // outputs, so a change on either side that is not made on both fails the tests.
 // Comments explaining why each rule exists live in the Python original.
 
+import { t, jointWord, sideWords } from "./i18n.js";
+
 // ----- small Python-compatible helpers -------------------------------------
 
 // Python formats "{:.0f}" with round-half-to-even; Math.round rounds halves up.
@@ -39,10 +41,20 @@ export const MIN_CONFIDENCE = 0.55;
 export const TRACE_SAMPLES = 300;
 
 export class Exercise {
-  constructor({ name, jointNames, target, downBelow, upAbove, cue, minSpan = 0.18,
+  // code: SA, EF, KF - names the messages and travels in the QR format.
+  constructor({ name, code, jointNames, target, downBelow, upAbove, minSpan = 0.18,
                 minPlausible = 0.0 }) {
-    Object.assign(this, { name, jointNames, target: [...target], downBelow, upAbove, cue,
+    Object.assign(this, { name, code, jointNames, target: [...target], downBelow, upAbove,
                           minSpan, minPlausible });
+  }
+
+  // The name as a person reads it; `name` stays English, and is what is stored.
+  get displayName() {
+    return t(`exercise.${this.code}.name`);
+  }
+
+  label(side) {
+    return t("exercise.with_side", { name: this.displayName, ...sideWords(side) });
   }
 
   resolve(side) {
@@ -51,7 +63,7 @@ export class Exercise {
   }
 
   measuredJoint(side) {
-    return `${side} ${this.jointNames[1]}`;
+    return t(`joint_side.${this.jointNames[1]}`, sideWords(side));
   }
 
   get decreasing() {
@@ -82,13 +94,20 @@ export class Exercise {
   }
 
   cueFor(side = null) {
-    return this.cue.replace("{limb}", side ? `your ${side}` : "the measured");
+    return t(`exercise.${this.code}.cue.${side ? "side" : "measured"}`, side ? sideWords(side) : {});
   }
 
   plausible(angle) {
     return angle >= this.minPlausible;
   }
 
+  // How rate() reads to a person, in the language in use.
+  rateText(peak) {
+    return t(`rating.${this.rate(peak).replace(/ /g, "_")}`);
+  }
+
+  // The three answers are identifiers, not text: they are compared in code and
+  // stored. rateText() is what a person reads.
   rate(peak) {
     const [lo, hi] = this.target;
     if (lo <= peak && peak <= hi) return "in target";
@@ -98,17 +117,12 @@ export class Exercise {
 }
 
 export const EXERCISES = [
-  new Exercise({ name: "Shoulder abduction", jointNames: ["hip", "shoulder", "elbow"],
-                 target: [80, 170], downBelow: 40, upAbove: 80,
-                 cue: "Face the camera, raise {limb} arm sideways, elbow straight", minSpan: 0.18 }),
-  new Exercise({ name: "Elbow flexion", jointNames: ["shoulder", "elbow", "wrist"],
-                 target: [40, 90], downBelow: 150, upAbove: 90,
-                 cue: "Stand side-on with {limb} arm nearest the camera; bend the elbow, upper arm still",
-                 minSpan: 0.14, minPlausible: 25 }),
-  new Exercise({ name: "Knee flexion", jointNames: ["hip", "knee", "ankle"],
-                 target: [60, 130], downBelow: 160, upAbove: 120,
-                 cue: "Stand side-on with {limb} leg nearest the camera; bend the knee back",
-                 minSpan: 0.22, minPlausible: 25 }),
+  new Exercise({ name: "Shoulder abduction", code: "SA", jointNames: ["hip", "shoulder", "elbow"],
+                 target: [80, 170], downBelow: 40, upAbove: 80, minSpan: 0.18 }),
+  new Exercise({ name: "Elbow flexion", code: "EF", jointNames: ["shoulder", "elbow", "wrist"],
+                 target: [40, 90], downBelow: 150, upAbove: 90, minSpan: 0.14, minPlausible: 25 }),
+  new Exercise({ name: "Knee flexion", code: "KF", jointNames: ["hip", "knee", "ankle"],
+                 target: [60, 130], downBelow: 160, upAbove: 120, minSpan: 0.22, minPlausible: 25 }),
 ];
 
 export const exerciseByName = (name) => EXERCISES.find((e) => e.name === name);
@@ -171,9 +185,10 @@ export class SegmentCheck {
       const short = rp < SegmentCheck.MIN_PROXIMAL || rd < SegmentCheck.MIN_DISTAL;
       if (short || Math.max(rp, rd) > SegmentCheck.MAX_RATIO) {
         ok = false;
-        const advice = ex.jointNames[1] === "shoulder" ? "face the camera squarely" : "turn fully side-on";
-        reason = `${ex.jointNames[1]} position uncertain – limb looks `
-                 + `${short ? "shortened" : "stretched"}; ${advice}`;
+        reason = t(short ? "measure.shortened" : "measure.stretched", {
+          joint: jointWord(ex.jointNames[1]),
+          advice: t(`measure.advice.${ex.jointNames[1] === "shoulder" ? "face_camera" : "side_on"}`),
+        });
       }
     }
     if (atStart && ok) {
@@ -202,8 +217,7 @@ export class FramePipeline {
         reason = why;
       } else if (!ex.plausible(angle)) {
         confident = false;
-        const j = ex.jointNames[1];
-        reason = `${j} angle ${fmt0(angle)}° is not physically possible – check the view of the ${j}`;
+        reason = t("measure.implausible", { joint: jointWord(ex.jointNames[1]), angle: fmt0(angle) });
       }
     }
     const smoothed = this.smoother.update(confident ? angle : null);
@@ -290,24 +304,24 @@ export function landmarkConfidence(landmarks, indices, names = null) {
       && lm.x >= -0.02 && lm.x <= 1.02 && lm.y >= -0.02 && lm.y <= 1.02;
     const scores = [v, p].filter((x) => x);
     let conf, reason;
-    if (!inside) [conf, reason] = [0, "out of frame"];
-    else if (!scores.length) [conf, reason] = [0.5, "confidence unavailable"];
-    else [conf, reason] = [Math.min(...scores), "not clearly visible"];
+    if (!inside) [conf, reason] = [0, t("confidence.out_of_frame")];
+    else if (!scores.length) [conf, reason] = [0.5, t("confidence.unavailable")];
+    else [conf, reason] = [Math.min(...scores), t("confidence.not_visible")];
     if (conf < worstConf) {
       worstConf = conf;
       worstName = names ? names[pos] : String(i);
       worstReason = reason;
     }
   });
-  return [worstConf, worstName ? `${worstName} ${worstReason}` : ""];
+  return [worstConf, worstName ? t("confidence.line", { joint: jointWord(worstName), reason: worstReason }) : ""];
 }
 
 export function framingHint(points, ex, frameH) {
   if (!points || frameH <= 0) return "";
   const [a, b, c] = points;
   const ratio = (hypot(a, b) + hypot(b, c)) / frameH;
-  if (ratio < ex.minSpan * 0.75) return "Too far away - move closer to the camera";
-  if (ratio < ex.minSpan) return "A little far - move closer for a steadier reading";
-  if (ratio > ex.minSpan * 3.0) return "Too close - step back so the whole movement fits";
+  if (ratio < ex.minSpan * 0.75) return t("framing.too_far");
+  if (ratio < ex.minSpan) return t("framing.a_little_far");
+  if (ratio > ex.minSpan * 3.0) return t("framing.too_close");
   return "";
 }

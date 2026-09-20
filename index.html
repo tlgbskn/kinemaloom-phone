@@ -11,49 +11,54 @@
 <script type="module" src="js/app.js"></script>
 </head>
 <body>
+<!-- data-i18n names the message that fills an element; app.js sets it when the
+     language is chosen, so a screen never shows a mix of two languages. -->
 
 <!-- No programme yet -->
 <section id="welcome" class="page centred" hidden>
   <div class="logo"><img src="KinemaLoom.jpg" alt="KinemaLoom"></div>
-  <h1>Home exercise</h1>
-  <p class="sub">Your clinician shows you a QR code on their computer. Scan it to get your exercises.</p>
-  <button class="big primary" data-go="scan">Scan the programme</button>
-  <p class="safety">Stop if it hurts. This is a prototype, not a medical device, and it does not replace your clinician's advice.</p>
+  <h1 data-i18n="patient.home_exercise"></h1>
+  <p class="sub" data-i18n="patient.welcome.sub"></p>
+  <button class="big primary" data-go="scan" data-i18n="patient.scan.title"></button>
+  <button class="small" id="language-welcome"></button>
+  <p class="safety" data-i18n="patient.safety"></p>
 </section>
 
 <!-- Scanning the clinic's programme QR -->
 <section id="scan" class="page" hidden>
-  <header><button class="small" data-go="back">Back</button><h2>Scan the programme</h2></header>
+  <header><button class="small" data-go="back" data-i18n="patient.back"></button>
+    <h2 data-i18n="patient.scan.title"></h2></header>
   <div class="camera"><video id="scan-video" playsinline muted></video><div class="aim"></div></div>
-  <p class="sub" id="scan-msg">Point the camera at the QR code on your clinician's screen.</p>
+  <p class="sub" id="scan-msg"></p>
 </section>
 
 <!-- Programme loaded -->
 <section id="home" class="page" hidden>
   <div class="logo small"><img src="KinemaLoom.jpg" alt="KinemaLoom"></div>
-  <h1 id="home-title">Your exercises</h1>
+  <h1 id="home-title"></h1>
   <p class="sub" id="home-from"></p>
   <ol id="home-list" class="items"></ol>
-  <button class="big primary" id="home-start">Start today's exercises</button>
-  <button class="big" data-go="send" id="home-send">Send results to the clinic</button>
+  <button class="big primary" id="home-start"></button>
+  <button class="big" data-go="send" id="home-send"></button>
   <p class="sub" id="home-sessions"></p>
   <footer>
-    <button class="small" data-go="scan">Scan a new programme</button>
-    <button class="small" id="forget">Delete my data from this phone</button>
+    <button class="small" data-go="scan" data-i18n="patient.home.rescan"></button>
+    <button class="small" id="language"></button>
+    <button class="small" id="forget" data-i18n="patient.home.forget"></button>
   </footer>
-  <p class="safety">Stop if it hurts. This is a prototype, not a medical device, and it does not replace your clinician's advice.</p>
+  <p class="safety" data-i18n="patient.safety"></p>
 </section>
 
 <!-- Exercising -->
 <section id="exercise" class="page exercise" hidden>
   <header>
     <div><h2 id="ex-title"></h2><p class="cue" id="ex-cue"></p></div>
-    <button class="small toggle" id="sound">Sound on</button>
+    <button class="small toggle" id="sound"></button>
   </header>
   <div class="stage">
     <div class="camera live"><canvas id="live"></canvas>
       <div class="angle" id="angle"></div>
-      <div class="loading" id="loading">Preparing the camera…</div>
+      <div class="loading" id="loading"></div>
     </div>
     <div class="warning" id="warning"></div>
   </div>
@@ -65,41 +70,42 @@
     <div class="status" id="status"></div>
     <ol class="strip" id="strip"></ol>
     <div class="buttons">
-      <button class="small" id="finish">Finish</button>
-      <button class="big primary" id="start">Start</button>
-      <button class="big" id="skip" hidden>Skip rest</button>
-      <button class="big" id="next">Next exercise</button>
+      <button class="small" id="finish" data-i18n="patient.button.finish"></button>
+      <button class="big primary" id="start" data-i18n="patient.button.start"></button>
+      <button class="big" id="skip" data-i18n="patient.button.skip_rest" hidden></button>
+      <button class="big" id="next"></button>
     </div>
   </div>
 </section>
 
 <!-- After a session: how did it feel -->
 <section id="feedback" class="page centred" hidden>
-  <h1>How did it feel?</h1>
-  <p class="sub">Your clinician will see your answers with today's session.</p>
-  <p class="label">Pain during the exercises: 0 is none, 10 is the worst imaginable</p>
+  <h1 data-i18n="patient.feedback.title"></h1>
+  <p class="sub" data-i18n="patient.feedback.sub"></p>
+  <p class="label" data-i18n="patient.feedback.pain"></p>
   <div class="choices" id="pain"></div>
-  <p class="label">How hard was it?</p>
+  <p class="label" data-i18n="patient.feedback.effort"></p>
   <div class="choices" id="effort"></div>
   <div class="row">
-    <button class="big" id="fb-skip">Skip</button>
-    <button class="big primary" id="fb-save">Save</button>
+    <button class="big" id="fb-skip" data-i18n="patient.button.skip"></button>
+    <button class="big primary" id="fb-save" data-i18n="patient.button.save"></button>
   </div>
 </section>
 
 <!-- Saved -->
 <section id="done" class="page centred" hidden>
-  <h1 id="done-title">Well done</h1>
+  <h1 id="done-title"></h1>
   <ul class="summary" id="done-list"></ul>
   <p class="sub" id="done-text"></p>
-  <button class="big primary" data-go="send">Send results to the clinic</button>
-  <button class="big" data-go="home">Back to my exercises</button>
+  <button class="big primary" data-go="send" data-i18n="patient.home.send"></button>
+  <button class="big" data-go="home" data-i18n="patient.done.back"></button>
 </section>
 
 <!-- Results as an animated QR for the clinic computer's camera -->
 <section id="send" class="page centred" hidden>
-  <header><button class="small" data-go="home">Done</button><h2>Send results</h2></header>
-  <p class="sub" id="send-msg">Hold this screen up to the clinic computer's camera, about 20 to 40 cm away. The code changes by itself; keep holding until the computer says every part is read.</p>
+  <header><button class="small" data-go="home" data-i18n="patient.send.done"></button>
+    <h2 data-i18n="patient.send.title"></h2></header>
+  <p class="sub" data-i18n="patient.send.how"></p>
   <canvas id="qr"></canvas>
   <p class="sub" id="send-part"></p>
 </section>

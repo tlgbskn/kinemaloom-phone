@@ -8,6 +8,7 @@
 // returns to the start, and the same saved figures.
 
 import { exerciseByName, FramePipeline, RepCounter } from "./core.js";
+import { t, sideWords } from "./i18n.js";
 import { compactSession } from "./exchange.js";
 
 export const FAR_MARGIN = 0.03;   // relative depth by which the measured limb counts as the farther
@@ -165,14 +166,14 @@ export class HomeSession {
     const item = this.item();
     const counter = this.counter();
     if (this.resting()) {
-      return { big: `Rest ${this.restLeft()}s`,
-               sub: `Set ${this.setNo} of ${item.sets} done, then set ${this.setNo + 1} of ${item.sets}` };
+      return { big: t("count.rest", { seconds: this.restLeft() }),
+               sub: t("count.rest.sub", { n: this.setNo, next: this.setNo + 1, sets: item.sets }) };
     }
     const inSet = counter.reps - (this.setNo - 1) * item.reps;
-    const head = this.itemDone() ? "Done – well done!"
-      : item.sets > 1 ? `Set ${this.setNo} of ${item.sets}` : "repetitions";
+    const head = this.itemDone() ? t("count.head.done")
+      : item.sets > 1 ? t("count.head.set", { n: this.setNo, sets: item.sets }) : t("count.head.reps");
     return { big: `${Math.min(Math.max(inSet, 0), item.reps)} / ${item.reps}`,
-             sub: `${head} · ${counter.repsInTarget()} ended in your target range` };
+             sub: t("count.sub", { head, n: counter.repsInTarget() }) };
   }
 
   // Where the repetition stands and what to do next, as in the desktop's
@@ -181,32 +182,37 @@ export class HomeSession {
     const ex = this.ex;
     const counter = this.counter();
     if (this.resting()) {
-      return [`Rest – ${this.restLeft()} s`,
-              `Counting is paused. Set ${this.setNo + 1} of ${this.item().sets} starts after the rest.`, "none"];
+      return [t("status.rest.main", { seconds: this.restLeft() }),
+              t("status.rest.hint", { n: this.setNo + 1, sets: this.item().sets }), "none"];
     }
     const r = (x) => Math.round(x);
-    const [go, back, reach] = ex.decreasing
-      ? [`bend below ${r(ex.upAbove)}°`, `straighten past ${r(ex.downBelow)}°`, "deepest"]
-      : [`raise above ${r(ex.upAbove)}°`, `lower below ${r(ex.downBelow)}°`, "highest"];
+    const go = t(ex.decreasing ? "status.go.bend" : "status.go.raise", { angle: r(ex.upAbove) });
+    const back = t(ex.decreasing ? "status.back.straighten" : "status.back.lower", { angle: r(ex.downBelow) });
+    const reach = t(ex.decreasing ? "status.reach.deepest" : "status.reach.highest");
     const cap = (s) => s[0].toUpperCase() + s.slice(1);
     const level = (p) => (ex.rate(p) === "in target" ? "in" : "off");
     const last = counter.repPeaks.length ? counter.repPeaks[counter.repPeaks.length - 1] : null;
-    const verdict = (n, p) => `Rep ${n} · ${r(p)}° · ${ex.rate(p)}`;
-    if (this.state === "idle") return ["Ready when you are", "Press Start when you are in position", "none"];
+    const verdict = (n, p) => t("status.verdict", { n, angle: r(p), rating: ex.rateText(p) });
+    if (this.state === "idle") return [t("status.idle.main"), t("status.idle.hint"), "none"];
     if (this.state === "ended") {
-      return [last === null ? "Session ended" : `Last: ${verdict(counter.repPeaks.length, last)}`, "", "none"];
+      return [last === null ? t("status.ended.main")
+                            : t("status.ended.last", { verdict: verdict(counter.repPeaks.length, last) }),
+              "", "none"];
     }
-    if (counter.phase === "ready") return ["Get into the starting position", `${cap(back)} to begin`, "none"];
+    if (counter.phase === "ready") {
+      return [t("status.ready.main"), t("status.ready.hint", { back: cap(back) }), "none"];
+    }
     if (counter.phase === "working") {
       const p = counter.currentPeak;
-      const rating = ex.rate(p);
-      return [`Rep ${counter.reps} · ${reach} ${r(p)}° · `
-              + (rating === "in target" ? "in target so far" : rating), `${cap(back)} to finish`, level(p)];
+      const inTarget = ex.rate(p) === "in target";
+      return [t("status.working.main", { n: counter.reps, reach, angle: r(p),
+                                         verdict: inTarget ? t("status.working.in_target") : ex.rateText(p) }),
+              t("status.working.hint", { back: cap(back) }), level(p)];
     }
     if (last !== null && this.repDoneAt !== null && this.now() - this.repDoneAt < verdictMs) {
-      return [verdict(counter.repPeaks.length, last), `Next: ${go}`, level(last)];
+      return [verdict(counter.repPeaks.length, last), t("status.verdict.hint", { go }), level(last)];
     }
-    return [`Ready for rep ${counter.reps + 1}`, `${cap(go)} to count it`, "none"];
+    return [t("status.next.main", { n: counter.reps + 1 }), t("status.next.hint", { go: cap(go) }), "none"];
   }
 
   // ----- finishing ------------------------------------------------------------
@@ -244,7 +250,7 @@ export class HomeSession {
     return this.items.map((it) => {
       const reps = this.counter(it).reps;
       const total = HomeSession.total(it);
-      return { name: `${it.ex.name} (${it.side})`, reps: Math.min(reps, total), total, done: reps >= total };
+      return { name: t("patient.item.title", { name: it.ex.displayName, ...sideWords(it.side) }), reps: Math.min(reps, total), total, done: reps >= total };
     });
   }
 }
