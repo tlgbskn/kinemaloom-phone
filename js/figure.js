@@ -2,7 +2,7 @@
 // A canvas port of ExerciseAnimation in motionloom_qt.py; the geometry is the
 // same, in the same 200 x 230 model space.
 
-import { t } from "./i18n.js?v=8fbc77d3c9";
+import { t } from "./i18n.js?v=442f55f491";
 
 export const COLOURS = {
   bg: "#1e2020", fg: "#e8eeee", muted: "#909696", ok: "#78be6e", tile: "#292c2c", edge: "#424646",

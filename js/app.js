@@ -7,14 +7,14 @@
 //
 // Everything runs on the phone. The camera picture is never stored or sent.
 
-import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=8fbc77d3c9";
-import qrcode from "./vendor/qrcode.mjs?v=8fbc77d3c9";
-import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=8fbc77d3c9";
-import { decodeProgramme, encodeResults } from "./exchange.js?v=8fbc77d3c9";
-import { HomeSession } from "./session.js?v=8fbc77d3c9";
-import { drawFigure, facingText } from "./figure.js?v=8fbc77d3c9";
-import * as store from "./store.js?v=8fbc77d3c9";
-import { t, useLanguage, currentLanguage, sideWords, LANGUAGES } from "./i18n.js?v=8fbc77d3c9";
+import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=442f55f491";
+import qrcode from "./vendor/qrcode.mjs?v=442f55f491";
+import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=442f55f491";
+import { decodeProgramme, encodeResults } from "./exchange.js?v=442f55f491";
+import { HomeSession } from "./session.js?v=442f55f491";
+import { drawFigure, facingText } from "./figure.js?v=442f55f491";
+import * as store from "./store.js?v=442f55f491";
+import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=442f55f491";
 
 const MODEL = "full";
 const SEND_PART_MS = 500;          // each results QR part stays this long on screen
@@ -33,13 +33,13 @@ function setText(el, text) {
 // ----- the language ------------------------------------------------------------
 
 // The clinic can put the patient's language in the programme; the patient can
-// change it here, and that choice wins from then on. Failing both, the phone's
-// own language, and English if that is not one we have.
+// change it here, and that choice holds until the next programme arrives, which
+// carries a decision someone has just made. See chooseLanguage.
 async function applyLanguage(chosen) {
   if (chosen) store.settings.language = chosen;
-  const programme = store.loadProgramme()?.programme;
-  const lang = store.settings.language || programme?.language || navigator.language?.slice(0, 2);
-  await useLanguage(lang);
+  await useLanguage(chooseLanguage({ chosen: store.settings.language,
+                                     programme: store.loadProgramme()?.programme?.language,
+                                     phone: navigator.language }));
   document.documentElement.lang = currentLanguage();
   for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
   // The language button offers the other language, in that language.
@@ -192,7 +192,12 @@ async function startScan() {
         done = true;
         store.saveProgramme(ours, programme);
         if (navigator.vibrate) navigator.vibrate(80);
-        await applyLanguage();        // a programme may arrive in the other language
+        // A new programme carries the language the clinic chose for this
+        // patient, and saying so is a decision someone just made: it beats a
+        // language this phone was switched to earlier. The patient can switch
+        // again afterwards, and that choice then holds until the next programme.
+        store.settings.language = "";
+        await applyLanguage();
         renderHome();
       } else if (texts.length) {
         msg.textContent = t("patient.scan.not_ours");

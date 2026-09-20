@@ -497,5 +497,9 @@
   "date.month.10": "Oct",
   "date.month.11": "Nov",
   "date.month.12": "Dec",
-  "progress.date.full": "{day} {month} {year}"
+  "progress.date.full": "{day} {month} {year}",
+  "dialog.programme.language": "Language on the patient's phone",
+  "dialog.programme.language.tip": "The programme QR opens the phone in this language. The patient can change it there.",
+  "dialog.programme.language.clinic": "Same as this computer ({language})",
+  "clinic.patient.language": "phone in {language}"
 }

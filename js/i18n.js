@@ -68,6 +68,17 @@ export function t(key, values = {}) {
 // Both forms of "left" and "right"; French needs "le genou droit" but "la jambe droite".
 export const sideWords = (side) => ({ side: t(`side.${side}`), side_m: t(`side_m.${side}`) });
 
+// Which language to show, in order: the one the patient chose on this phone,
+// then the one the clinic put in their programme, then the phone's own. A
+// newly scanned programme clears the patient's choice (see app.js), so the
+// clinic's decision is not overridden by a tap from weeks ago.
+export function chooseLanguage({ chosen, programme, phone } = {}) {
+  for (const lang of [chosen, programme, (phone || "").slice(0, 2)]) {
+    if (lang && LANGUAGES[lang]) return lang;
+  }
+  return DEFAULT;
+}
+
 // A joint's name in words; anything not in the catalogue stays as it is.
 export function jointWord(name) {
   const key = `joint.${name}`;
