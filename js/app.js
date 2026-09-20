@@ -7,14 +7,14 @@
 //
 // Everything runs on the phone. The camera picture is never stored or sent.
 
-import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs";
-import qrcode from "./vendor/qrcode.mjs";
-import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js";
-import { decodeProgramme, encodeResults } from "./exchange.js";
-import { HomeSession } from "./session.js";
-import { drawFigure, facingText } from "./figure.js";
-import * as store from "./store.js";
-import { t, useLanguage, currentLanguage, sideWords, LANGUAGES } from "./i18n.js";
+import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=8fbc77d3c9";
+import qrcode from "./vendor/qrcode.mjs?v=8fbc77d3c9";
+import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=8fbc77d3c9";
+import { decodeProgramme, encodeResults } from "./exchange.js?v=8fbc77d3c9";
+import { HomeSession } from "./session.js?v=8fbc77d3c9";
+import { drawFigure, facingText } from "./figure.js?v=8fbc77d3c9";
+import * as store from "./store.js?v=8fbc77d3c9";
+import { t, useLanguage, currentLanguage, sideWords, LANGUAGES } from "./i18n.js?v=8fbc77d3c9";
 
 const MODEL = "full";
 const SEND_PART_MS = 500;          // each results QR part stays this long on screen

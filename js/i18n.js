@@ -14,9 +14,12 @@ let language = DEFAULT;
 // the source tree, as the tests do - in the project's own i18n folder.
 async function read(lang, base) {
   const bases = base ? [base] : ["../i18n/", "../../i18n/"].map((b) => new URL(b, import.meta.url));
+  // The build gives this file a ?v=<version>; the messages are asked for under
+  // the same one, so a page can never be served with another build's wording.
+  const version = new URL(import.meta.url).search;
   let last;
   for (const b of bases) {
-    const url = new URL(`${lang}.json`, b);
+    const url = new URL(`${lang}.json${version}`, b);
     try {
       if (url.protocol === "file:") {
         const { readFile } = await import("node:fs/promises");
