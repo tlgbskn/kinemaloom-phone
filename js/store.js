@@ -89,7 +89,7 @@ export function recoverDraft() {
 export async function phoneKey() {
   let key = read(PHONE_KEY, null);
   if (!key?.privateJwk || !key?.publicRaw) {
-    const { newPhoneKey } = await import("./exchange.js?v=0afa75c6b8");
+    const { newPhoneKey } = await import("./exchange.js?v=f658e47a3e");
     key = await newPhoneKey();
     write(PHONE_KEY, key);
   }

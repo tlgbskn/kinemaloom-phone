@@ -171,10 +171,21 @@ export function pyRound(x) {
 
 // ----- Programme: clinic -> phone ------------------------------------------
 
+// Which programme format a scanned text is: 1 or 2; 0 if it is no KinemaLoom
+// programme; -1 for "KLP" and a version this app does not know - a programme from
+// a newer clinic computer, where the patient should update the app, not move closer.
+// The scanner asks this rather than checking a prefix of its own: it once checked
+// for "KLP1" and turned every version 2 programme away as not ours.
+export function programmeVersion(text) {
+  const t = (text || "").trim();
+  if (!t.startsWith("KLP")) return 0;
+  return { [PROGRAMME_PREFIX]: VERSION, [PROGRAMME_PREFIX_V2]: VERSION_2 }[t.slice(0, 4)] ?? -1;
+}
+
 export async function decodeProgramme(text) {
   text = (text || "").trim();
-  const version = { [PROGRAMME_PREFIX]: VERSION, [PROGRAMME_PREFIX_V2]: VERSION_2 }[text.slice(0, 4)];
-  if (!version) throw new ExchangeError("not a KinemaLoom programme");
+  const version = programmeVersion(text);
+  if (version <= 0) throw new ExchangeError("not a KinemaLoom programme");
   const p = await unpack(b45decode(text.slice(4)));
   if (p.v !== version) throw new ExchangeError(`programme format version ${p.v} is not supported`);
   const items = p.i.map(([ex, side, reps, sets, rest, lo, hi]) => {

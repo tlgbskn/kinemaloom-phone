@@ -546,5 +546,6 @@
   "exchange.no_clinic_key": "Cet ordinateur n'a pas de clé de clinique : il ne peut pas ouvrir ces résultats.",
   "dialog.phone.first_phone": "Premiers résultats du téléphone de ce patient. Il sera reconnu désormais.",
   "dialog.phone.new_phone": "Ces résultats viennent d'un autre téléphone que les précédents de ce patient. C'est normal après un nouveau téléphone, une réinstallation ou l'ajout de l'application à l'écran d'accueil. Sinon, ne les enregistrez pas.",
-  "dialog.phone.confirm_phone": "C'est bien le téléphone du patient"
+  "dialog.phone.confirm_phone": "C'est bien le téléphone du patient",
+  "patient.scan.newer": "Ce programme vient d'une version plus récente de KinemaLoom. Rechargez cette page pour mettre l'application à jour, puis scannez de nouveau."
 }

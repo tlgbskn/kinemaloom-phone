@@ -5,7 +5,7 @@
 // outputs, so a change on either side that is not made on both fails the tests.
 // Comments explaining why each rule exists live in the Python original.
 
-import { t, jointWord, sideWords } from "./i18n.js?v=0afa75c6b8";
+import { t, jointWord, sideWords } from "./i18n.js?v=f658e47a3e";
 
 // ----- small Python-compatible helpers -------------------------------------
 

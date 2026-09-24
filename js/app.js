@@ -7,14 +7,14 @@
 //
 // Everything runs on the phone. The camera picture is never stored or sent.
 
-import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=0afa75c6b8";
-import qrcode from "./vendor/qrcode.mjs?v=0afa75c6b8";
-import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=0afa75c6b8";
-import { decodeProgramme, encodeResults, encodeResultsV2 } from "./exchange.js?v=0afa75c6b8";
-import { HomeSession, itemExercise } from "./session.js?v=0afa75c6b8";
-import { drawFigure, facingText } from "./figure.js?v=0afa75c6b8";
-import * as store from "./store.js?v=0afa75c6b8";
-import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=0afa75c6b8";
+import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=f658e47a3e";
+import qrcode from "./vendor/qrcode.mjs?v=f658e47a3e";
+import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=f658e47a3e";
+import { decodeProgramme, encodeResults, encodeResultsV2, programmeVersion } from "./exchange.js?v=f658e47a3e";
+import { HomeSession, itemExercise } from "./session.js?v=f658e47a3e";
+import { drawFigure, facingText } from "./figure.js?v=f658e47a3e";
+import * as store from "./store.js?v=f658e47a3e";
+import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=f658e47a3e";
 
 const MODEL = "full";
 const SEND_PART_MS = 500;          // each results QR part stays this long on screen
@@ -217,8 +217,10 @@ async function startScan() {
         const found = window.jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
         if (found) texts = [found.data];
       }
-      const ours = texts.find((text) => text.startsWith("KLP1"));
-      if (ours) {
+      const ours = texts.find((text) => programmeVersion(text) !== 0);
+      if (ours && programmeVersion(ours) < 0) {
+        msg.textContent = t("patient.scan.newer");
+      } else if (ours) {
         const programme = await decodeProgramme(ours);
         done = true;
         store.saveProgramme(ours, programme);
