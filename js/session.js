@@ -7,29 +7,36 @@
 // only while running and not resting, a set closing when its last repetition
 // returns to the start, and the same saved figures.
 
-import { exerciseByName, FramePipeline, RepCounter } from "./core.js?v=70f62c16f5";
-import { t, sideWords } from "./i18n.js?v=70f62c16f5";
-import { compactSession } from "./exchange.js?v=70f62c16f5";
+import { exerciseByName, FramePipeline, RepCounter } from "./core.js?v=0afa75c6b8";
+import { t, sideWords } from "./i18n.js?v=0afa75c6b8";
+import { compactSession } from "./exchange.js?v=0afa75c6b8";
 
 export const FAR_MARGIN = 0.03;   // relative depth by which the measured limb counts as the farther
 const FAR_WINDOW = 30;
 
-// A decoded programme (exchange.decodeProgramme) as items with their exercise
-// definitions, the patient's own range applied. Unknown exercises are dropped.
+// The exercise definition for one programme item, with the patient's own range,
+// or null if this phone cannot do it as prescribed: an exercise it does not know,
+// or a range its counter cannot use. Such an item is left out and shown as such -
+// never measured against another range, which the report would then carry as if
+// the clinician had set it. Both happen only when phone and clinic versions differ.
+export function itemExercise(it) {
+  const base = exerciseByName(it.exercise);
+  if (!base) return null;
+  const [lo, hi] = it.target;
+  if (base.target[0] === lo && base.target[1] === hi) return base;
+  try {
+    return base.withTarget(lo, hi);
+  } catch {
+    return null;
+  }
+}
+
+// A decoded programme (exchange.decodeProgramme) as the items this phone can do.
 export function programmeItems(programme) {
   const items = [];
   for (const it of programme.items) {
-    const base = exerciseByName(it.exercise);
-    if (!base) continue;
-    const [lo, hi] = it.target;
-    let ex = base;
-    if (base.target[0] !== lo || base.target[1] !== hi) {
-      try {
-        ex = base.withTarget(lo, hi);
-      } catch {
-        ex = base;                 // a range the counter cannot use: the built-in one
-      }
-    }
+    const ex = itemExercise(it);
+    if (!ex) continue;
     items.push({ ex, side: it.side, reps: Math.max(1, it.reps), sets: Math.max(1, it.sets || 1),
                  rest: Math.max(0, it.rest ?? 30) });
   }

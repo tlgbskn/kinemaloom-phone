@@ -5,6 +5,7 @@
 const PROGRAMME = "kl.programme";
 const SESSIONS = "kl.sessions";
 const DRAFT = "kl.draft";
+const PHONE_KEY = "kl.phonekey";
 // The phone never learns whether the clinic read a session, so it keeps them
 // long enough that a missed visit or two cannot cost one. A year of twice-daily
 // sessions is a few hundred kilobytes.
@@ -81,11 +82,26 @@ export function recoverDraft() {
   return ok;
 }
 
+// This phone's signing key, made the first time it is needed and kept. The clinic
+// knows a patient's phone by it, so a new one - after "Delete my data", or in a
+// Home Screen app, whose storage is separate from Safari's - is shown to the
+// clinician as a different phone before anything is saved.
+export async function phoneKey() {
+  let key = read(PHONE_KEY, null);
+  if (!key?.privateJwk || !key?.publicRaw) {
+    const { newPhoneKey } = await import("./exchange.js?v=0afa75c6b8");
+    key = await newPhoneKey();
+    write(PHONE_KEY, key);
+  }
+  return key;
+}
+
 export function forgetAll() {
   try {
     localStorage.removeItem(PROGRAMME);
     localStorage.removeItem(SESSIONS);
     localStorage.removeItem(DRAFT);
+    localStorage.removeItem(PHONE_KEY);
   } catch {
     // nothing stored, or storage blocked: nothing to forget
   }

@@ -50,6 +50,7 @@ button.primary, button.ready { background: var(--ok); color: #142014; border-col
 .items li { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; padding: 10px 14px; }
 .items b { display: block; }
 .items span { color: var(--muted); font-size: 14px; }
+.items span.unusable { display: block; color: var(--warn); margin-top: 4px; }
 
 .camera { position: relative; background: #121313; border-radius: 12px; overflow: hidden; }
 #scan .camera { aspect-ratio: 3 / 4; width: 100%; }

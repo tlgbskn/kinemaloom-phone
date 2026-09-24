@@ -7,14 +7,14 @@
 //
 // Everything runs on the phone. The camera picture is never stored or sent.
 
-import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=70f62c16f5";
-import qrcode from "./vendor/qrcode.mjs?v=70f62c16f5";
-import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=70f62c16f5";
-import { decodeProgramme, encodeResults } from "./exchange.js?v=70f62c16f5";
-import { HomeSession } from "./session.js?v=70f62c16f5";
-import { drawFigure, facingText } from "./figure.js?v=70f62c16f5";
-import * as store from "./store.js?v=70f62c16f5";
-import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=70f62c16f5";
+import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=0afa75c6b8";
+import qrcode from "./vendor/qrcode.mjs?v=0afa75c6b8";
+import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=0afa75c6b8";
+import { decodeProgramme, encodeResults, encodeResultsV2 } from "./exchange.js?v=0afa75c6b8";
+import { HomeSession, itemExercise } from "./session.js?v=0afa75c6b8";
+import { drawFigure, facingText } from "./figure.js?v=0afa75c6b8";
+import * as store from "./store.js?v=0afa75c6b8";
+import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=0afa75c6b8";
 
 const MODEL = "full";
 const SEND_PART_MS = 500;          // each results QR part stays this long on screen
@@ -278,6 +278,12 @@ function renderHome() {
     const span = document.createElement("span");
     span.textContent = describeItem(it);
     li.append(b, span);
+    if (!itemExercise(it)) {           // shown, so the patient knows it was prescribed
+      const note = document.createElement("span");
+      note.className = "unusable";
+      note.textContent = t("patient.item.unusable");
+      li.append(note);
+    }
     return li;
   }));
   const n = store.sessionsFor(p.patient).length;
@@ -801,7 +807,11 @@ async function startSend() {
     nextBtn.onclick = () => showBatch((b + 1) % batches.length);
     let parts;
     try {
-      parts = await encodeResults(p.patient, p.key, sessions);
+      // A version 2 programme names the clinic's public key: seal for it and sign
+      // as this phone. A programme scanned before that still carries a shared key.
+      parts = p.clinicKey
+        ? await encodeResultsV2(p.patient, p.clinicKey, await store.phoneKey(), sessions)
+        : await encodeResults(p.patient, p.key, sessions);
     } catch (e) {
       partText.textContent = t("patient.send.failed", { message: e.message });
       return;
@@ -823,9 +833,21 @@ async function startSend() {
 
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
 await applyLanguage();               // nothing is shown before the messages are in
-store.recoverDraft();                // a session the page was closed in the middle of
-installAdvice();
-store.loadProgramme() ? renderHome() : show("welcome");
+
+// What the QR exchange needs from the browser. Without the compression streams
+// (Safari before iOS 16.4) every scan failed with an engine error that read like
+// a bad scan, so the patient kept moving closer. Better to say it once, plainly.
+const missing = ["CompressionStream", "DecompressionStream"].filter((name) => !(name in window));
+if (!window.crypto?.subtle) missing.push("crypto.subtle");
+
+if (missing.length) {
+  show("unsupported");
+  $("unsupported-text").textContent = t("patient.unsupported.body", { missing: missing.join(", ") });
+} else {
+  store.recoverDraft();              // a session the page was closed in the middle of
+  installAdvice();
+  store.loadProgramme() ? renderHome() : show("welcome");
+}
 
 // For the development page and tests: the state, read-only in spirit.
 window.kinemaloom = { get session() { return session; }, get latest() { return latest; }, store };
