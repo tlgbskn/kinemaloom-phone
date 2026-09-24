@@ -46,6 +46,12 @@ button.primary, button.ready { background: var(--ok); color: #142014; border-col
   color: #f3dfb4; font-size: 14px; text-align: left; max-width: 420px; align-self: center;
 }
 .install b { display: block; margin-bottom: 4px; color: #f0bb66; }
+.install .steps { margin: 8px 0 0; padding-left: 22px; }
+.install .steps li { margin: 4px 0; }
+.install .steps svg { vertical-align: -3px; }
+.install.offer { background: var(--panel); border-color: var(--edge); color: var(--sub); }
+.install.offer b { color: var(--fg); }
+.install.offer button { margin-top: 10px; }
 .items { list-style: none; padding: 0; margin: 4px 0; display: flex; flex-direction: column; gap: 8px; }
 .items li { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; padding: 10px 14px; }
 .items b { display: block; }

@@ -7,14 +7,14 @@
 //
 // Everything runs on the phone. The camera picture is never stored or sent.
 
-import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=f658e47a3e";
-import qrcode from "./vendor/qrcode.mjs?v=f658e47a3e";
-import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=f658e47a3e";
-import { decodeProgramme, encodeResults, encodeResultsV2, programmeVersion } from "./exchange.js?v=f658e47a3e";
-import { HomeSession, itemExercise } from "./session.js?v=f658e47a3e";
-import { drawFigure, facingText } from "./figure.js?v=f658e47a3e";
-import * as store from "./store.js?v=f658e47a3e";
-import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=f658e47a3e";
+import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=a682c2ee8c";
+import qrcode from "./vendor/qrcode.mjs?v=a682c2ee8c";
+import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=a682c2ee8c";
+import { decodeProgramme, encodeResults, encodeResultsV2, programmeVersion } from "./exchange.js?v=a682c2ee8c";
+import { HomeSession, itemExercise } from "./session.js?v=a682c2ee8c";
+import { drawFigure, facingText } from "./figure.js?v=a682c2ee8c";
+import * as store from "./store.js?v=a682c2ee8c";
+import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=a682c2ee8c";
 
 const MODEL = "full";
 const SEND_PART_MS = 500;          // each results QR part stays this long on screen
@@ -79,18 +79,64 @@ const onIPhone = /iPhone|iPad|iPod/.test(navigator.userAgent)
 const installed = navigator.standalone === true
   || window.matchMedia?.("(display-mode: standalone)").matches;
 
+// Android: Chrome offers the install itself, when the page qualifies (a manifest,
+// icons, https, and some use). The offer is kept and made into a button, rather
+// than left to a banner the patient may never see. On Android the installed app
+// shares the browser's storage, so nothing has to move.
+let installOffer = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  installOffer = e;
+  installAdvice();
+});
+window.addEventListener("appinstalled", () => {
+  installOffer = null;
+  installAdvice();
+});
+
+const el = (tag, className, text) => {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+};
+
+// The iPhone's Share symbol, drawn as it looks: a box with an arrow out of it.
+const SHARE_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none"
+  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8 9H6.5A1.5 1.5 0 0 0 5 10.5v9A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 17.5 9H16"/>
+  <path d="M12 3v11M8.5 6.5 12 3l3.5 3.5"/></svg>`;
+
 function installAdvice() {
-  const show = onIPhone && !installed;
   const saved = store.loadProgramme();
   const unsent = saved ? store.sessionsFor(saved.programme.patient).length : 0;
+  const iphone = onIPhone && !installed;
+  const android = Boolean(installOffer) && !installed;
   for (const box of document.querySelectorAll("[data-install]")) {
-    box.hidden = !show;
-    if (!show) continue;
-    const title = document.createElement("b");
-    title.textContent = t("patient.install.title");
-    const body = document.createElement("span");
-    body.textContent = t(unsent ? "patient.install.body.has_sessions" : "patient.install.body");
-    box.replaceChildren(title, body);
+    box.hidden = !iphone && !android;
+    box.classList.toggle("offer", android && !iphone);
+    if (iphone) {
+      // Safari cannot be asked to install: the patient does it, so say exactly how.
+      const steps = el("ol", "steps");
+      if (unsent) steps.append(el("li", "", t("patient.install.step.send_first")));
+      const share = el("li");
+      share.innerHTML = SHARE_ICON;
+      share.append(" ", t("patient.install.step.share"));
+      steps.append(share, el("li", "", t("patient.install.step.add")),
+                   el("li", "", t("patient.install.step.open")));
+      box.replaceChildren(el("b", "", t("patient.install.title")),
+                          el("span", "", t("patient.install.why")), steps);
+    } else if (android) {
+      const button = el("button", "big primary", t("patient.install.button"));
+      button.onclick = async () => {
+        const offer = installOffer;
+        installOffer = null;             // an offer can be used once
+        await offer?.prompt();
+        installAdvice();
+      };
+      box.replaceChildren(el("b", "", t("patient.install.android.title")),
+                          el("span", "", t("patient.install.android.why")), button);
+    }
   }
 }
 

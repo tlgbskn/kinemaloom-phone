@@ -530,8 +530,6 @@
   "patient.send.next": "Transfert suivant",
   "patient.send.first": "Revenir au premier transfert",
   "patient.install.title": "Sur iPhone : ajoutez KinemaLoom à votre écran d'accueil",
-  "patient.install.body": "Safari efface les données d'un site après 7 jours sans l'ouvrir, y compris vos exercices et vos résultats. Touchez Partager, puis Sur l'écran d'accueil, puis ouvrez KinemaLoom depuis l'écran d'accueil et scannez votre programme là.",
-  "patient.install.body.has_sessions": "Safari efface les données d'un site après 7 jours sans l'ouvrir, y compris vos exercices et vos résultats. Envoyez d'abord à la clinique, d'ici, les résultats déjà enregistrés. Puis touchez Partager, Sur l'écran d'accueil, et scannez votre programme dans l'application de l'écran d'accueil.",
   "dialog.phone.show_qr": "Afficher le code QR",
   "dialog.phone.show_qr.tip": "Afficher le code QR du programme pour que le téléphone du patient le scanne",
   "dialog.phone.hide_qr": "Masquer le code QR",
@@ -547,5 +545,14 @@
   "dialog.phone.first_phone": "Premiers résultats du téléphone de ce patient. Il sera reconnu désormais.",
   "dialog.phone.new_phone": "Ces résultats viennent d'un autre téléphone que les précédents de ce patient. C'est normal après un nouveau téléphone, une réinstallation ou l'ajout de l'application à l'écran d'accueil. Sinon, ne les enregistrez pas.",
   "dialog.phone.confirm_phone": "C'est bien le téléphone du patient",
-  "patient.scan.newer": "Ce programme vient d'une version plus récente de KinemaLoom. Rechargez cette page pour mettre l'application à jour, puis scannez de nouveau."
+  "patient.scan.newer": "Ce programme vient d'une version plus récente de KinemaLoom. Rechargez cette page pour mettre l'application à jour, puis scannez de nouveau.",
+  "patient.install.why": "Safari efface les données d'un site après 7 jours sans l'ouvrir, y compris vos exercices et vos résultats. Une application sur l'écran d'accueil les garde.",
+  "patient.install.step.send_first": "Vous avez ici des résultats que la clinique n'a pas encore lus. Continuez à utiliser KinemaLoom ici, au moins tous les quelques jours, et envoyez-les à votre prochaine visite. Ensuite :",
+  "patient.install.step.share": "Touchez Partager, en bas de Safari.",
+  "patient.install.step.add": "Choisissez Sur l'écran d'accueil, puis Ajouter.",
+  "patient.install.step.open": "Ouvrez KinemaLoom depuis l'écran d'accueil et scannez-y votre programme. Utilisez-le désormais depuis là.",
+  "patient.install.android.title": "Installer KinemaLoom sur ce téléphone",
+  "patient.install.android.why": "Elle s'ouvre depuis l'écran d'accueil comme une application, sans le navigateur autour. Vos exercices et vos résultats restent tels quels.",
+  "patient.install.button": "Installer",
+  "dialog.phone.iphone_hint": "iPhone : avant le scan, faites ajouter KinemaLoom à l'écran d'accueil et scanner depuis là. Safari efface les données d'un site après 7 jours sans ouverture, et l'application de l'écran d'accueil ne voit pas celles de Safari."
 }

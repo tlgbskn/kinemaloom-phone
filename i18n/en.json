@@ -530,8 +530,6 @@
   "patient.send.next": "Next transfer",
   "patient.send.first": "Back to the first transfer",
   "patient.install.title": "On iPhone: add KinemaLoom to your Home Screen",
-  "patient.install.body": "Safari deletes what a website keeps after 7 days without opening it, and that would include your exercises and results. Tap Share, then Add to Home Screen, then open KinemaLoom from the Home Screen and scan your programme there.",
-  "patient.install.body.has_sessions": "Safari deletes what a website keeps after 7 days without opening it, and that would include your exercises and results. Send the results already saved here to the clinic from here first. Then tap Share, Add to Home Screen, and scan your programme in the Home Screen app.",
   "dialog.phone.show_qr": "Show QR",
   "dialog.phone.show_qr.tip": "Show the programme QR for the patient's phone to scan",
   "dialog.phone.hide_qr": "Hide QR",
@@ -547,5 +545,14 @@
   "dialog.phone.first_phone": "First results from this patient's phone. It will be recognised from now on.",
   "dialog.phone.new_phone": "These results come from a different phone than this patient's earlier ones. That is expected after a new phone, a reinstall, or adding the app to the Home Screen. Otherwise, do not save them.",
   "dialog.phone.confirm_phone": "This is the patient's phone",
-  "patient.scan.newer": "This programme comes from a newer version of KinemaLoom. Reload this page to update the app, then scan again."
+  "patient.scan.newer": "This programme comes from a newer version of KinemaLoom. Reload this page to update the app, then scan again.",
+  "patient.install.why": "Safari deletes what a website keeps after 7 days without opening it - your exercises and results included. An app on the Home Screen keeps them.",
+  "patient.install.step.send_first": "You have results here the clinic has not read yet. Keep using KinemaLoom here, at least every few days, and send them at your next visit. Then:",
+  "patient.install.step.share": "Tap Share at the bottom of Safari.",
+  "patient.install.step.add": "Choose Add to Home Screen, then Add.",
+  "patient.install.step.open": "Open KinemaLoom from the Home Screen and scan your programme there. Use it from there from now on.",
+  "patient.install.android.title": "Install KinemaLoom on this phone",
+  "patient.install.android.why": "It opens from the Home Screen like an app, without the browser around it. Your exercises and results stay as they are.",
+  "patient.install.button": "Install",
+  "dialog.phone.iphone_hint": "iPhone: before scanning, have the patient add KinemaLoom to the Home Screen and scan from there. Safari deletes a site's data after 7 days unopened, and the Home Screen app does not see Safari's."
 }
