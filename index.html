@@ -6,9 +6,17 @@
 <meta name="theme-color" content="#1e2020">
 <meta name="referrer" content="no-referrer">
 <title>KinemaLoom</title>
-<link rel="stylesheet" href="style.css?v=442f55f491">
-<script src="js/vendor/jsQR.js?v=442f55f491"></script>
-<script type="module" src="js/app.js?v=442f55f491"></script>
+<!-- Installable: on an iPhone, only an app on the Home Screen keeps its data
+     past seven days of not being opened. See installAdvice in app.js. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KinemaLoom">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="stylesheet" href="style.css?v=70f62c16f5">
+<script src="js/vendor/jsQR.js?v=70f62c16f5"></script>
+<script type="module" src="js/app.js?v=70f62c16f5"></script>
 </head>
 <body>
 <!-- data-i18n names the message that fills an element; app.js sets it when the
@@ -19,6 +27,7 @@
   <div class="logo"><img src="KinemaLoom.jpg" alt="KinemaLoom"></div>
   <h1 data-i18n="patient.home_exercise"></h1>
   <p class="sub" data-i18n="patient.welcome.sub"></p>
+  <div class="install" data-install hidden></div>
   <button class="big primary" data-go="scan" data-i18n="patient.scan.title"></button>
   <button class="small" id="language-welcome"></button>
   <p class="safety" data-i18n="patient.safety"></p>
@@ -41,6 +50,7 @@
   <button class="big primary" id="home-start"></button>
   <button class="big" data-go="send" id="home-send"></button>
   <p class="sub" id="home-sessions"></p>
+  <div class="install" data-install hidden></div>
   <footer>
     <button class="small" data-go="scan" data-i18n="patient.home.rescan"></button>
     <button class="small" id="language"></button>
@@ -106,8 +116,10 @@
   <header><button class="small" data-go="home" data-i18n="patient.send.done"></button>
     <h2 data-i18n="patient.send.title"></h2></header>
   <p class="sub" data-i18n="patient.send.how"></p>
+  <p class="label" id="send-batch" hidden></p>
   <canvas id="qr"></canvas>
   <p class="sub" id="send-part"></p>
+  <button class="big" id="send-next" hidden></button>
 </section>
 
 </body>

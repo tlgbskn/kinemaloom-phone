@@ -7,9 +7,9 @@
 // only while running and not resting, a set closing when its last repetition
 // returns to the start, and the same saved figures.
 
-import { exerciseByName, FramePipeline, RepCounter } from "./core.js?v=442f55f491";
-import { t, sideWords } from "./i18n.js?v=442f55f491";
-import { compactSession } from "./exchange.js?v=442f55f491";
+import { exerciseByName, FramePipeline, RepCounter } from "./core.js?v=70f62c16f5";
+import { t, sideWords } from "./i18n.js?v=70f62c16f5";
+import { compactSession } from "./exchange.js?v=70f62c16f5";
 
 export const FAR_MARGIN = 0.03;   // relative depth by which the measured limb counts as the farther
 const FAR_WINDOW = 30;

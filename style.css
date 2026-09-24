@@ -41,6 +41,11 @@ button.big { font-size: 18px; padding: 16px 24px; width: 100%; max-width: 420px;
 button.small { font-size: 14px; padding: 8px 12px; }
 button.primary, button.ready { background: var(--ok); color: #142014; border-color: var(--ok); font-weight: 600; }
 
+.install {
+  background: #3a2f1a; border: 1px solid #6b5426; border-radius: 10px; padding: 10px 14px;
+  color: #f3dfb4; font-size: 14px; text-align: left; max-width: 420px; align-self: center;
+}
+.install b { display: block; margin-bottom: 4px; color: #f0bb66; }
 .items { list-style: none; padding: 0; margin: 4px 0; display: flex; flex-direction: column; gap: 8px; }
 .items li { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; padding: 10px 14px; }
 .items b { display: block; }

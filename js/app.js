@@ -7,14 +7,14 @@
 //
 // Everything runs on the phone. The camera picture is never stored or sent.
 
-import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=442f55f491";
-import qrcode from "./vendor/qrcode.mjs?v=442f55f491";
-import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=442f55f491";
-import { decodeProgramme, encodeResults } from "./exchange.js?v=442f55f491";
-import { HomeSession } from "./session.js?v=442f55f491";
-import { drawFigure, facingText } from "./figure.js?v=442f55f491";
-import * as store from "./store.js?v=442f55f491";
-import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=442f55f491";
+import { FilesetResolver, PoseLandmarker } from "./vendor/vision_bundle.mjs?v=70f62c16f5";
+import qrcode from "./vendor/qrcode.mjs?v=70f62c16f5";
+import { angle3pt, exerciseByName, framingHint, landmarkConfidence, MIN_CONFIDENCE } from "./core.js?v=70f62c16f5";
+import { decodeProgramme, encodeResults } from "./exchange.js?v=70f62c16f5";
+import { HomeSession } from "./session.js?v=70f62c16f5";
+import { drawFigure, facingText } from "./figure.js?v=70f62c16f5";
+import * as store from "./store.js?v=70f62c16f5";
+import { t, useLanguage, currentLanguage, chooseLanguage, sideWords, LANGUAGES } from "./i18n.js?v=70f62c16f5";
 
 const MODEL = "full";
 const SEND_PART_MS = 500;          // each results QR part stays this long on screen
@@ -55,12 +55,43 @@ async function applyLanguage(chosen) {
 
 // Whatever page is showing, drawn again in the language now in use.
 function redraw() {
+  installAdvice();
   if (page === "home") renderHome();
   else if (page === "exercise") {
     selectionChanged();
     buildStrip();
   } else if (page === "scan") $("scan-msg").textContent = t("patient.scan.hint");
   else if (page === "send") startSend();
+}
+
+// ----- keeping the data on an iPhone -------------------------------------------
+
+// Safari on iPhone deletes a site's stored data after seven days of use in
+// which the site is not opened (WebKit, "7-day cap on all script-writeable
+// storage"). An app added to the Home Screen is exempt: its days follow its
+// own use. A patient who opens the app once a week would lose the programme
+// and every unsent session. The Home Screen app has its own storage, separate
+// from Safari's, so the advice is to add it first and scan the programme
+// there - and, if sessions are already saved here, to send those from here.
+const onIPhone = /iPhone|iPad|iPod/.test(navigator.userAgent)
+  || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)    // iPadOS
+  || new URLSearchParams(location.search).has("ios");                        // development only
+const installed = navigator.standalone === true
+  || window.matchMedia?.("(display-mode: standalone)").matches;
+
+function installAdvice() {
+  const show = onIPhone && !installed;
+  const saved = store.loadProgramme();
+  const unsent = saved ? store.sessionsFor(saved.programme.patient).length : 0;
+  for (const box of document.querySelectorAll("[data-install]")) {
+    box.hidden = !show;
+    if (!show) continue;
+    const title = document.createElement("b");
+    title.textContent = t("patient.install.title");
+    const body = document.createElement("span");
+    body.textContent = t(unsent ? "patient.install.body.has_sessions" : "patient.install.body");
+    box.replaceChildren(title, body);
+  }
 }
 
 // ----- pages ------------------------------------------------------------------
@@ -254,6 +285,7 @@ function renderHome() {
     ? t("patient.home.sessions.some", { sessions: sessionsWord(n) })
     : t("patient.home.sessions.none");
   $("home-send").disabled = n === 0;
+  installAdvice();
 }
 
 $("home-start").addEventListener("click", () => startExercises());
@@ -551,7 +583,19 @@ function updateReadout() {
   });
 }
 
+// The session so far, kept on the phone: after every repetition, and whenever
+// the page goes out of sight, which may be the last this page ever hears.
+function keepDraft() {
+  if (session?.state === "running" && session.hasData()) {
+    store.saveDraft(session.programme.patient, session.result(null));
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden" && page === "exercise") keepDraft();
+});
+
 function announceRep(rep) {
+  keepDraft();
   tone(rep.rating === "in target");
   const status = $("status");
   status.classList.remove("flash");
@@ -650,6 +694,7 @@ function saveSession(feedback) {
   if (!pendingSave) return false;
   pendingSave = false;
   const ok = store.addSession(session.programme.patient, session.result(feedback));
+  if (ok) store.clearDraft();       // the finished session replaces the draft
   return ok;
 }
 
@@ -728,39 +773,58 @@ async function startSend() {
   if (!saved) return show("welcome");
   show("send");
   const p = saved.programme;
-  const sessions = store.sessionsFor(p.patient);
+  const batches = store.batchesFor(p.patient);
   const canvas = $("qr");
   const partText = $("send-part");
-  if (!sessions.length) {
+  const batchText = $("send-batch");
+  const nextBtn = $("send-next");
+  if (!batches.length) {
     canvas.hidden = true;
+    batchText.hidden = nextBtn.hidden = true;
     partText.textContent = t("patient.send.none");
     return;
   }
   canvas.hidden = false;
-  let parts;
-  try {
-    parts = await encodeResults(p.patient, p.key, sessions);
-  } catch (e) {
-    partText.textContent = t("patient.send.failed", { message: e.message });
-    return;
-  }
-  let i = 0;
-  const step = () => {
-    drawQr(canvas, parts[i]);
-    partText.textContent = t("patient.send.part", { sessions: sessionsWord(sessions.length),
-                                                    n: i + 1, total: parts.length });
-    i = (i + 1) % parts.length;
-  };
-  step();
-  const timer = setInterval(step, SEND_PART_MS);
   keepAwake(true);
+  let timer = null;
   leaving.push(() => { clearInterval(timer); keepAwake(false); });
+
+  // More sessions than one transfer carries go in several; the clinic computer
+  // reads one, saves it, and reads the next.
+  const showBatch = async (b) => {
+    clearInterval(timer);
+    const sessions = batches[b];
+    batchText.hidden = batches.length < 2;
+    batchText.textContent = t("patient.send.batch", { n: b + 1, total: batches.length });
+    nextBtn.hidden = batches.length < 2;
+    nextBtn.textContent = t(b + 1 < batches.length ? "patient.send.next" : "patient.send.first");
+    nextBtn.onclick = () => showBatch((b + 1) % batches.length);
+    let parts;
+    try {
+      parts = await encodeResults(p.patient, p.key, sessions);
+    } catch (e) {
+      partText.textContent = t("patient.send.failed", { message: e.message });
+      return;
+    }
+    let i = 0;
+    const step = () => {
+      drawQr(canvas, parts[i]);
+      partText.textContent = t("patient.send.part", { sessions: sessionsWord(sessions.length),
+                                                      n: i + 1, total: parts.length });
+      i = (i + 1) % parts.length;
+    };
+    step();
+    timer = setInterval(step, SEND_PART_MS);
+  };
+  await showBatch(0);
 }
 
 // ----- start ----------------------------------------------------------------------
 
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
 await applyLanguage();               // nothing is shown before the messages are in
+store.recoverDraft();                // a session the page was closed in the middle of
+installAdvice();
 store.loadProgramme() ? renderHome() : show("welcome");
 
 // For the development page and tests: the state, read-only in spirit.
